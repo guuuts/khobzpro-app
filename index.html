@@ -29,6 +29,11 @@
         .chart-container { position: relative; height: 300px; width: 100%; }
     </style>
 </head>
+    <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
 <body class="bg-gray-50 text-gray-800">
 
     <!-- Navigation -->
