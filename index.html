@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhoubzPro - Bread Delivery Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .warm-gradient { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
+        .money-gradient { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        @keyframes pulse-ring { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 175, 25, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(245, 175, 25, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 175, 25, 0); } }
+        .notification-badge { animation: bounce 0.5s ease infinite alternate; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .tab-active { border-bottom: 3px solid #f5af19; color: #f5af19; font-weight: 600; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-2xl">🥖</div>
+                    <div>
+                        <h1 class="text-xl font-bold">KhoubzPro</h1>
+                        <p class="text-xs opacity-80">Bread Delivery Management</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="exportToExcel()" class="hidden md:flex bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition items-center space-x-2">
+                        <span>📊</span>
+                        <span>Export Excel</span>
+                    </button>
+                    <div class="relative">
+                        <button onclick="toggleNotifications()" class="p-2 hover:bg-white/20 rounded-full transition relative">
+                            <span class="text-xl">🔔</span>
+                            <span id="notifBadge" class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Date Display -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800" id="currentDate">Today</h2>
+                <p class="text-gray-500" id="currentMonthDisplay">March 2026</p>
+            </div>
+            <div class="flex space-x-2">
+                <select id="monthSelector" onchange="loadMonthData()" class="bg-white border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="current">Current Month</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass rounded-2xl p-4 shadow-lg card-hover border-l-4 border-blue-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Today's Breads</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" id="kpiTodayBreads">0</p>
+                    </div>
+                    <span class="text-2xl">📅</span>
+                </div>
+            </div>
+            
+            <div class="glass rounded-2xl p-4 shadow-lg card-hover border-l-4 border-purple-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Monthly Total</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1" id="kpiMonthlyBreads">0</p>
+                    </div>
+                    <span class="text-2xl">📦</span>
+                </div>
+            </div>
+            
+            <div class="glass rounded-2xl p-4 shadow-lg card-hover border-l-4 border-green-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Revenue (MAD)</p>
+                        <p class="text-2xl font-bold text-green-600 mt-1" id="kpiRevenue">0</p>
+                    </div>
+                    <span class="text-2xl">💰</span>
+                </div>
+            </div>
+            
+            <div class="glass rounded-2xl p-4 shadow-lg card-hover border-l-4 border-orange-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Net Profit (MAD)</p>
+                        <p class="text-2xl font-bold text-orange-600 mt-1" id="kpiProfit">0</p>
+                    </div>
+                    <span class="text-2xl">📈</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Input Section -->
+        <div class="bg-gradient-to-r from-amber-100 to-orange-100 rounded-2xl p-6 mb-8 shadow-lg border border-amber-200">
+            <h3 class="text-lg font-bold text-amber-800 mb-4 flex items-center">
+                <span class="mr-2">⚡</span> Quick Daily Input
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <select id="quickWorker" class="bg-white border border-amber-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <option value="">Select Worker...</option>
+                </select>
+                <input type="number" id="quickBreads" placeholder="Breads delivered today" class="bg-white border border-amber-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <button onclick="quickAddDelivery()" class="bg-amber-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-600 transition transform hover:scale-105 shadow-lg">
+                    Add Delivery 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-t-2xl shadow-sm border-b border-gray-200 overflow-x-auto">
+            <div class="flex space-x-8 px-6 min-w-max">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-active py-4 px-2 transition">Dashboard</button>
+                <button onclick="switchTab('schools')" id="tab-schools" class="py-4 px-2 text-gray-500 hover:text-gray-700 transition">Schools (29)</button>
+                <button onclick="switchTab('workers')" id="tab-workers" class="py-4 px-2 text-gray-500 hover:text-gray-700 transition">Workers (7)</button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="py-4 px-2 text-gray-500 hover:text-gray-700 transition">Analytics</button>
+                <button onclick="switchTab('history')" id="tab-history" class="py-4 px-2 text-gray-500 hover:text-gray-700 transition">History</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="content-dashboard" class="tab-content slide-in">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <!-- Profit Dashboard -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">💼</span> Profit Overview
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-4 bg-green-50 rounded-xl">
+                            <span class="text-gray-600">Total Revenue</span>
+                            <span class="text-2xl font-bold text-green-600" id="dashRevenue">0 MAD</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-red-50 rounded-xl">
+                            <span class="text-gray-600">Total Salaries</span>
+                            <span class="text-2xl font-bold text-red-600" id="dashSalaries">0 MAD</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
+                            <span class="text-gray-800 font-medium">Net Profit</span>
+                            <span class="text-3xl font-bold text-blue-600" id="dashProfit">0 MAD</span>
+                        </div>
+                        <div class="mt-4 p-4 bg-gray-50 rounded-xl">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span>Profit Margin</span>
+                                <span id="profitMargin" class="font-bold">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="profitBar" class="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performers -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">🏆</span> Top Performers
+                    </h3>
+                    <div id="topPerformersList" class="space-y-3 max-h-80 overflow-y-auto">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Monthly Trend Chart -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Monthly Revenue Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schools Tab -->
+        <div id="content-schools" class="tab-content hidden slide-in">
+            <div class="mt-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">School Management</h3>
+                    <div class="flex space-x-2">
+                        <input type="text" id="schoolSearch" placeholder="Search schools..." onkeyup="filterSchools()" class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <button onclick="resetSchools()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition">Reset All</button>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <p class="text-sm text-yellow-800">
+                        <strong>💡 Tip:</strong> Enter daily bread amounts for each school. Monthly totals and revenue are calculated automatically based on working days (22 days/month).
+                    </p>
+                </div>
+
+                <div class="overflow-x-auto bg-white rounded-2xl shadow-lg">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">School Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Daily Breads</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Monthly Total</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Price/Bread (MAD)</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Monthly Revenue</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schoolsTableBody" class="divide-y divide-gray-200">
+                            <!-- Dynamic content -->
+                        </tbody>
+                        <tfoot class="bg-gray-50 font-bold">
+                            <tr>
+                                <td class="px-6 py-4 text-gray-800">TOTAL</td>
+                                <td class="px-6 py-4 text-gray-800" id="totalSchoolDaily">0</td>
+                                <td class="px-6 py-4 text-gray-800" id="totalSchoolMonthly">0</td>
+                                <td class="px-6 py-4">-</td>
+                                <td class="px-6 py-4 text-green-600 text-lg" id="totalSchoolRevenue">0 MAD</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workers Tab -->
+        <div id="content-workers" class="tab-content hidden slide-in">
+            <div class="mt-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">Workers Management</h3>
+                    <div class="flex space-x-2">
+                        <input type="text" id="workerSearch" placeholder="Search workers..." onkeyup="filterWorkers()" class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="workersGrid">
+                    <!-- Dynamic content -->
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-6 mt-6">
+                    <div class="flex justify-between items-center border-t pt-4">
+                        <span class="text-xl font-bold text-gray-800">Total Salaries</span>
+                        <span class="text-3xl font-bold text-red-600" id="totalWorkersSalary">0 MAD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="content-analytics" class="tab-content hidden slide-in">
+            <div class="mt-6 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Worker Performance Chart -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Worker Performance (Breads Delivered)</h3>
+                        <div class="chart-container">
+                            <canvas id="workerChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- School Revenue Chart -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Revenue by School</h3>
+                        <div class="chart-container">
+                            <canvas id="schoolChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Comparison -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Monthly Growth Comparison</h3>
+                        <div class="chart-container">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Insights -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Performance Insights</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-green-600 mb-3">🏆 Best Performers</h4>
+                            <ul id="bestWorkersList" class="space-y-2"></ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-red-600 mb-3">⚠️ Needs Attention</h4>
+                            <ul id="weakWorkersList" class="space-y-2"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="content-history" class="tab-content hidden slide-in">
+            <div class="mt-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">Monthly History</h3>
+                    <button onclick="saveCurrentMonth()" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition font-medium">
+                        Save Current Month 📥
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Month</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Total Breads</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Revenue (MAD)</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Worker Payments</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Profit</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-gray-200">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Yearly Summary -->
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg p-6 text-white">
+                    <h3 class="text-xl font-bold mb-4">Yearly Summary 2026</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white/20 rounded-xl p-4 backdrop-blur">
+                            <p class="text-sm opacity-80">Annual Revenue</p>
+                            <p class="text-2xl font-bold" id="yearlyRevenue">0 MAD</p>
+                        </div>
+                        <div class="bg-white/20 rounded-xl p-4 backdrop-blur">
+                            <p class="text-sm opacity-80">Annual Salaries</p>
+                            <p class="text-2xl font-bold" id="yearlySalaries">0 MAD</p>
+                        </div>
+                        <div class="bg-white/20 rounded-xl p-4 backdrop-blur">
+                            <p class="text-sm opacity-80">Annual Profit</p>
+                            <p class="text-2xl font-bold" id="yearlyProfit">0 MAD</p>
+                        </div>
+                        <div class="bg-white/20 rounded-xl p-4 backdrop-blur">
+                            <p class="text-sm opacity-80">Avg Monthly Profit</p>
+                            <p class="text-2xl font-bold" id="avgMonthlyProfit">0 MAD</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div id="notificationPanel" class="fixed top-20 right-4 w-80 bg-white rounded-2xl shadow-2xl transform translate-x-full transition-transform duration-300 z-50 max-h-96 overflow-hidden">
+        <div class="p-4 border-b bg-gray-50">
+            <h3 class="font-bold text-gray-800">Notifications</h3>
+        </div>
+        <div id="notificationList" class="p-4 space-y-3 overflow-y-auto max-h-72">
+            <!-- Dynamic notifications -->
+        </div>
+    </div>
+
+    <script>
+        // Data Structure
+        const defaultSchools = [
+            "Ecole Al Aman", "Ecole An-Nasr", "Ecole Al Fath", "Ecole Ibn Sina",
+            "Ecole Al Qods", "Ecole Al Waha", "Ecole Al Andalous", "Ecole Al Badr",
+            "Ecole Al Iman", "Ecole Al Irfan", "Ecole Al Kawtar", "Ecole Al Madina",
+            "Ecole Al Mustafa", "Ecole Al Noor", "Ecole Al Razi", "Ecole Al Wafa",
+            "Ecole An-Naim", "Ecole Annajah", "Ecole Arrahma", "Ecole Assalam",
+            "Ecole At-Tawhid", "Ecole Az-Zahra", "Ecole El Bir", "Ecole Ennour",
+            "Ecole Errazi", "Ecole Essalam", "Ecole Oued Eddahab", "Ecole Sidi Maarouf",
+            "Ecole Les Orangers"
+        ];
+
+        const defaultWorkers = [
+            "Ahmed Benali", "Mohamed Tazi", "Youssef Alaoui", "Karim Fassi",
+            "Omar Idrissi", "Hassan Moussaoui", "Rachid Bennani"
+        ];
+
+        // State Management
+        let appData = {
+            schools: [],
+            workers: [],
+            company: {
+                pricePerBread: 1.15,
+                totalBreadsDelivered: 0
+            },
+            history: [],
+            notifications: []
+        };
+
+        let charts = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            initializeData();
+            updateUI();
+            setupEventListeners();
+            updateDate();
+        });
+
+        function initializeData() {
+            // Initialize schools if empty
+            if (appData.schools.length === 0) {
+                appData.schools = defaultSchools.map((name, index) => ({
+                    id: index,
+                    name: name,
+                    dailyBreads: 0,
+                    pricePerBread: 1.15,
+                    workingDays: 22
+                }));
+            }
+
+            // Initialize workers if empty
+            if (appData.workers.length === 0) {
+                appData.workers = defaultWorkers.map((name, index) => ({
+                    id: index,
+                    name: name,
+                    breadsDelivered: 0,
+                    pricePerBread: 0.30, // 30% of company price as default salary per bread
+                    dailyDeliveries: []
+                }));
+            }
+
+            saveData();
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('khoubzpro_data');
+            if (saved) {
+                appData = JSON.parse(saved);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('khoubzpro_data', JSON.stringify(appData));
+        }
+
+        function updateDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+            document.getElementById('currentMonthDisplay').textContent = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        // UI Updates
+        function updateUI() {
+            updateSchoolsTable();
+            updateWorkersGrid();
+            updateKPICards();
+            updateDashboard();
+            updateQuickInput();
+            updateHistory();
+            updateCharts();
+            checkNotifications();
+        }
+
+        function updateKPICards() {
+            const today = new Date().toDateString();
+            let todayBreads = 0;
+            
+            appData.workers.forEach(worker => {
+                const todayDelivery = worker.dailyDeliveries?.find(d => d.date === today);
+                if (todayDelivery) {
+                    todayBreads += todayDelivery.amount;
+                }
+            });
+
+            const monthlyBreads = appData.schools.reduce((sum, school) => sum + (school.dailyBreads * 22), 0);
+            const revenue = appData.schools.reduce((sum, school) => sum + (school.dailyBreads * 22 * school.pricePerBread), 0);
+            const salaries = appData.workers.reduce((sum, worker) => sum + (worker.breadsDelivered * worker.pricePerBread), 0);
+            const profit = revenue - salaries;
+
+            document.getElementById('kpiTodayBreads').textContent = todayBreads.toLocaleString();
+            document.getElementById('kpiMonthlyBreads').textContent = monthlyBreads.toLocaleString();
+            document.getElementById('kpiRevenue').textContent = revenue.toFixed(2);
+            document.getElementById('kpiProfit').textContent = profit.toFixed(2);
+        }
+
+        function updateDashboard() {
+            const revenue = appData.schools.reduce((sum, school) => sum + (school.dailyBreads * 22 * school.pricePerBread), 0);
+            const salaries = appData.workers.reduce((sum, worker) => sum + (worker.breadsDelivered * worker.pricePerBread), 0);
+            const profit = revenue - salaries;
+            const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : 0;
+
+            document.getElementById('dashRevenue').textContent = revenue.toFixed(2) + ' MAD';
+            document.getElementById('dashSalaries').textContent = salaries.toFixed(2) + ' MAD';
+            document.getElementById('dashProfit').textContent = profit.toFixed(2) + ' MAD';
+            document.getElementById('profitMargin').textContent = margin + '%';
+            document.getElementById('profitBar').style.width = Math.max(0, Math.min(100, margin)) + '%';
+
+            // Top performers
+            const sortedWorkers = [...appData.workers].sort((a, b) => b.breadsDelivered - a.breadsDelivered).slice(0, 5);
+            const performersHTML = sortedWorkers.map((worker, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 ${index < 3 ? 'bg-yellow-400' : 'bg-gray-300'} rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">${worker.name}</p>
+                            <p class="text-xs text-gray-500">${worker.breadsDelivered} breads</p>
+                        </div>
+                    </div>
+                    <span class="font-bold text-green-600">${(worker.breadsDelivered * worker.pricePerBread).toFixed(0)} MAD</span>
+                </div>
+            `).join('');
+            document.getElementById('topPerformersList').innerHTML = performersHTML || '<p class="text-gray-500 text-center">No data available</p>';
+        }
+
+        function updateSchoolsTable() {
+            const tbody = document.getElementById('schoolsTableBody');
+            let totalDaily = 0;
+            let totalMonthly = 0;
+            let totalRevenue = 0;
+
+            tbody.innerHTML = appData.schools.map(school => {
+                const monthly = school.dailyBreads * (school.workingDays || 22);
+                const revenue = monthly * school.pricePerBread;
+                totalDaily += parseInt(school.dailyBreads) || 0;
+                totalMonthly += monthly;
+                totalRevenue += revenue;
+
+                return `
+                    <tr class="hover:bg-gray-50 transition school-row" data-name="${school.name.toLowerCase()}">
+                        <td class="px-6 py-4 font-medium text-gray-800">${school.name}</td>
+                        <td class="px-6 py-4">
+                            <input type="number" value="${school.dailyBreads}" 
+                                onchange="updateSchool(${school.id}, 'dailyBreads', this.value)"
+                                class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </td>
+                        <td class="px-6 py-4 font-medium text-purple-600">${monthly}</td>
+                        <td class="px-6 py-4">
+                            <input type="number" step="0.01" value="${school.pricePerBread}" 
+                                onchange="updateSchool(${school.id}, 'pricePerBread', this.value)"
+                                class="w-24 border border-gray-300 rounded-lg px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </td>
+                        <td class="px-6 py-4 font-bold text-green-600">${revenue.toFixed(2)}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="resetSchool(${school.id})" class="text-red-500 hover:text-red-700 transition text-sm">Reset</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('totalSchoolDaily').textContent = totalDaily;
+            document.getElementById('totalSchoolMonthly').textContent = totalMonthly;
+            document.getElementById('totalSchoolRevenue').textContent = totalRevenue.toFixed(2) + ' MAD';
+        }
+
+        function updateWorkersGrid() {
+            const grid = document.getElementById('workersGrid');
+            let totalSalary = 0;
+
+            grid.innerHTML = appData.workers.map(worker => {
+                const salary = worker.breadsDelivered * worker.pricePerBread;
+                totalSalary += salary;
+                const today = new Date().toDateString();
+                const todayDelivery = worker.dailyDeliveries?.find(d => d.date === today);
+                const todayAmount = todayDelivery ? todayDelivery.amount : 0;
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-lg p-6 card-hover worker-card" data-name="${worker.name.toLowerCase()}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white text-xl font-bold">
+                                    ${worker.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800">${worker.name}</h4>
+                                    <span class="text-xs text-gray-500">ID: #${worker.id + 1000}</span>
+                                </div>
+                            </div>
+                            <span class="text-2xl">👤</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase font-semibold">Monthly Breads</label>
+                                <input type="number" value="${worker.breadsDelivered}" 
+                                    onchange="updateWorker(${worker.id}, 'breadsDelivered', this.value)"
+                                    class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase font-semibold">Price per Bread (MAD)</label>
+                                <input type="number" step="0.01" value="${worker.pricePerBread}" 
+                                    onchange="updateWorker(${worker.id}, 'pricePerBread', this.value)"
+                                    class="w-full mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-xl p-4 flex justify-between items-center">
+                                <span class="text-gray-600 font-medium">Total Salary</span>
+                                <span class="text-xl font-bold text-green-600">${salary.toFixed(2)} MAD</span>
+                            </div>
+
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Today's delivery:</span>
+                                <span class="font-bold ${todayAmount > 0 ? 'text-green-600' : 'text-gray-400'}">${todayAmount} breads</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('totalWorkersSalary').textContent = totalSalary.toFixed(2) + ' MAD';
+        }
+
+        function updateQuickInput() {
+            const select = document.getElementById('quickWorker');
+            select.innerHTML = '<option value="">Select Worker...</option>' +
+                appData.workers.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+        }
+
+        function updateHistory() {
+            const tbody = document.getElementById('historyTableBody');
+            
+            if (appData.history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No saved history yet. Click "Save Current Month" to archive this month\'s data.</td></tr>';
+            } else {
+                tbody.innerHTML = appData.history.map((record, index) => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-800">${record.month}</td>
+                        <td class="px-6 py-4 text-purple-600 font-medium">${record.totalBreads.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-green-600 font-bold">${record.revenue.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-red-600">${record.workerPayments.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-blue-600 font-bold">${record.profit.toFixed(2)}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="loadHistoryMonth(${index})" class="text-purple-600 hover:text-purple-800 font-medium text-sm mr-3">View</button>
+                            <button onclick="deleteHistory(${index})" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update yearly summary
+            const yearlyRevenue = appData.history.reduce((sum, h) => sum + h.revenue, 0);
+            const yearlySalaries = appData.history.reduce((sum, h) => sum + h.workerPayments, 0);
+            const yearlyProfit = appData.history.reduce((sum, h) => sum + h.profit, 0);
+            const avgProfit = appData.history.length > 0 ? yearlyProfit / appData.history.length : 0;
+
+            document.getElementById('yearlyRevenue').textContent = yearlyRevenue.toFixed(0) + ' MAD';
+            document.getElementById('yearlySalaries').textContent = yearlySalaries.toFixed(0) + ' MAD';
+            document.getElementById('yearlyProfit').textContent = yearlyProfit.toFixed(0) + ' MAD';
+            document.getElementById('avgMonthlyProfit').textContent = avgProfit.toFixed(0) + ' MAD';
+
+            // Update month selector
+            const selector = document.getElementById('monthSelector');
+            selector.innerHTML = '<option value="current">Current Month</option>' +
+                appData.history.map((h, i) => `<option value="${i}">${h.month}</option>`).join('');
+        }
+
+        function updateCharts() {
+            // Worker Performance Chart
+            const workerCtx = document.getElementById('workerChart');
+            if (charts.worker) charts.worker.destroy();
+            
+            const sortedWorkers = [...appData.workers].sort((a, b) => b.breadsDelivered - a.breadsDelivered);
+            charts.worker = new Chart(workerCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedWorkers.map(w => w.name.split(' ')[0]),
+                    datasets: [{
+                        label: 'Breads Delivered',
+                        data: sortedWorkers.map(w => w.breadsDelivered),
+                        backgroundColor: sortedWorkers.map((_, i) => i < 3 ? 'rgba(245, 175, 25, 0.8)' : 'rgba(102, 126, 234, 0.6)'),
+                        borderColor: sortedWorkers.map((_, i) => i < 3 ? 'rgba(245, 175, 25, 1)' : 'rgba(102, 126, 234, 1)'),
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // School Revenue Chart
+            const schoolCtx = document.getElementById('schoolChart');
+            if (charts.school) charts.school.destroy();
+            
+            const topSchools = [...appData.schools]
+                .sort((a, b) => (b.dailyBreads * b.pricePerBread) - (a.dailyBreads * a.pricePerBread))
+                .slice(0, 10);
+            
+            charts.school = new Chart(schoolCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: topSchools.map(s => s.name.replace('Ecole ', '')),
+                    datasets: [{
+                        data: topSchools.map(s => s.dailyBreads * 22 * s.pricePerBread),
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                            '#fa709a', '#fee140'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // Revenue Trend Chart
+            const growthCtx = document.getElementById('growthChart');
+            if (charts.growth) charts.growth.destroy();
+            
+            const months = appData.history.map(h => h.month);
+            const revenues = appData.history.map(h => h.revenue);
+            const profits = appData.history.map(h => h.profit);
+            
+            // Add current month if not saved
+            const currentMonth = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (!months.includes(currentMonth)) {
+                const currentRevenue = appData.schools.reduce((sum, s) => sum + (s.dailyBreads * 22 * s.pricePerBread), 0);
+                const currentSalaries = appData.workers.reduce((sum, w) => sum + (w.breadsDelivered * w.pricePerBread), 0);
+                months.push(currentMonth);
+                revenues.push(currentRevenue);
+                profits.push(currentRevenue - currentSalaries);
+            }
+
+            charts.growth = new Chart(growthCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenues,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Profit',
+                        data: profits,
+                        borderColor: '#11998e',
+                        backgroundColor: 'rgba(17, 153, 142, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Update insights
+            const bestWorkers = [...appData.workers].sort((a, b) => b.breadsDelivered - a.breadsDelivered).slice(0, 3);
+            const weakWorkers = [...appData.workers].sort((a, b) => a.breadsDelivered - b.breadsDelivered).slice(0, 3);
+            
+            document.getElementById('bestWorkersList').innerHTML = bestWorkers.map(w => 
+                `<li class="flex justify-between items-center bg-green-50 p-3 rounded-lg">
+                    <span class="font-medium text-gray-800">${w.name}</span>
+                    <span class="text-green-600 font-bold">${w.breadsDelivered} breads</span>
+                </li>`
+            ).join('');
+
+            document.getElementById('weakWorkersList').innerHTML = weakWorkers.map(w => 
+                `<li class="flex justify-between items-center bg-red-50 p-3 rounded-lg">
+                    <span class="font-medium text-gray-800">${w.name}</span>
+                    <span class="text-red-600 font-bold">${w.breadsDelivered} breads</span>
+                </li>`
+            ).join('');
+        }
+
+        // Actions
+        function switchTab(tab) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Show selected
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            
+            // Update tab styles
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('text-gray-500');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+            
+            if (tab === 'analytics') {
+                setTimeout(updateCharts, 100);
+            }
+        }
+
+        function updateSchool(id, field, value) {
+            const school = appData.schools.find(s => s.id === id);
+            if (school) {
+                school[field] = parseFloat(value) || 0;
+                saveData();
+                updateUI();
+            }
+        }
+
+        function updateWorker(id, field, value) {
+            const worker = appData.workers.find(w => w.id === id);
+            if (worker) {
+                worker[field] = parseFloat(value) || 0;
+                saveData();
+                updateUI();
+            }
+        }
+
+        function resetSchool(id) {
+            const school = appData.schools.find(s => s.id === id);
+            if (school) {
+                school.dailyBreads = 0;
+                saveData();
+                updateUI();
+            }
+        }
+
+        function resetSchools() {
+            if (confirm('Reset all schools daily bread counts to 0?')) {
+                appData.schools.forEach(s => s.dailyBreads = 0);
+                saveData();
+                updateUI();
+            }
+        }
+
+        function quickAddDelivery() {
+            const workerId = document.getElementById('quickWorker').value;
+            const breads = parseInt(document.getElementById('quickBreads').value);
+            
+            if (!workerId || !breads) {
+                alert('Please select a worker and enter bread amount');
+                return;
+            }
+
+            const worker = appData.workers.find(w => w.id === parseInt(workerId));
+            const today = new Date().toDateString();
+            
+            if (!worker.dailyDeliveries) worker.dailyDeliveries = [];
+            
+            const existingIndex = worker.dailyDeliveries.findIndex(d => d.date === today);
+            if (existingIndex >= 0) {
+                worker.dailyDeliveries[existingIndex].amount += breads;
+            } else {
+                worker.dailyDeliveries.push({ date: today, amount: breads });
+            }
+            
+            worker.breadsDelivered += breads;
+            
+            saveData();
+            updateUI();
+            
+            // Reset form
+            document.getElementById('quickWorker').value = '';
+            document.getElementById('quickBreads').value = '';
+            
+            // Show success animation
+            showNotification(`Added ${breads} breads for ${worker.name}`, 'success');
+        }
+
+        function saveCurrentMonth() {
+            const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const totalBreads = appData.schools.reduce((sum, s) => sum + (s.dailyBreads * 22), 0);
+            const revenue = appData.schools.reduce((sum, s) => sum + (s.dailyBreads * 22 * s.pricePerBread), 0);
+            const workerPayments = appData.workers.reduce((sum, w) => sum + (w.breadsDelivered * w.pricePerBread), 0);
+            const profit = revenue - workerPayments;
+
+            // Check if month already exists
+            const existingIndex = appData.history.findIndex(h => h.month === month);
+            if (existingIndex >= 0) {
+                if (!confirm(`Data for ${month} already exists. Overwrite?`)) return;
+                appData.history[existingIndex] = { month, totalBreads, revenue, workerPayments, profit };
+            } else {
+                appData.history.push({ month, totalBreads, revenue, workerPayments, profit });
+            }
+
+            saveData();
+            updateHistory();
+            showNotification(`Month ${month} saved successfully!`, 'success');
+        }
+
+        function loadHistoryMonth(index) {
+            const record = appData.history[index];
+            alert(`Loading ${record.month} data...\n\nRevenue: ${record.revenue.toFixed(2)} MAD\nProfit: ${record.profit.toFixed(2)} MAD\n\nNote: This is a view-only summary. Restore functionality coming soon.`);
+        }
+
+        function deleteHistory(index) {
+            if (confirm('Delete this record?')) {
+                appData.history.splice(index, 1);
+                saveData();
+                updateHistory();
+            }
+        }
+
+        function filterSchools() {
+            const search = document.getElementById('schoolSearch').value.toLowerCase();
+            document.querySelectorAll('.school-row').forEach(row => {
+                const name = row.getAttribute('data-name');
+                row.style.display = name.includes(search) ? '' : 'none';
+            });
+        }
+
+        function filterWorkers() {
+            const search = document.getElementById('workerSearch').value.toLowerCase();
+            document.querySelectorAll('.worker-card').forEach(card => {
+                const name = card.getAttribute('data-name');
+                card.style.display = name.includes(search) ? '' : 'none';
+            });
+        }
+
+        function checkNotifications() {
+            const notifications = [];
+            
+            // Check for low performers
+            const avgBreads = appData.workers.reduce((sum, w) => sum + w.breadsDelivered, 0) / appData.workers.length;
+            appData.workers.forEach(worker => {
+                if (worker.breadsDelivered < avgBreads * 0.5 && worker.breadsDelivered > 0) {
+                    notifications.push({
+                        type: 'warning',
+                        message: `${worker.name} is performing below average (${worker.breadsDelivered} breads)`
+                    });
+                }
+            });
+
+            // Check for zero deliveries
+            appData.workers.forEach(worker => {
+                if (worker.breadsDelivered === 0) {
+                    notifications.push({
+                        type: 'info',
+                        message: `${worker.name} has no recorded deliveries this month`
+                    });
+                }
+            });
+
+            appData.notifications = notifications;
+            updateNotificationBadge();
+        }
+
+        function updateNotificationBadge() {
+            const badge = document.getElementById('notifBadge');
+            const count = appData.notifications.length;
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            const list = document.getElementById('notificationList');
+            
+            if (panel.classList.contains('translate-x-full')) {
+                // Show panel
+                list.innerHTML = appData.notifications.length > 0 
+                    ? appData.notifications.map(n => `
+                        <div class="flex items-start space-x-3 p-3 ${n.type === 'warning' ? 'bg-red-50' : 'bg-blue-50'} rounded-lg">
+                            <span class="text-xl">${n.type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                            <p class="text-sm text-gray-700">${n.message}</p>
+                        </div>
+                    `).join('')
+                    : '<p class="text-gray-500 text-center py-4">No notifications</p>';
+                panel.classList.remove('translate-x-full');
+            } else {
+                panel.classList.add('translate-x-full');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notif = document.createElement('div');
+            notif.className = `fixed bottom-4 right-4 ${type === 'success' ? 'bg-green-500' : 'bg-blue-500'} text-white px-6 py-3 rounded-xl shadow-lg transform translate-y-20 transition-transform duration-300 z-50 flex items-center space-x-2`;
+            notif.innerHTML = `<span>${type === 'success' ? '✓' : 'ℹ️'}</span><span>${message}</span>`;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => notif.classList.remove('translate-y-20'), 100);
+            setTimeout(() => {
+                notif.classList.add('translate-y-20');
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+
+        function exportToExcel() {
+            let csv = 'Schools Report\n';
+            csv += 'School Name,Daily Breads,Monthly Total,Price per Bread,Monthly Revenue\n';
+            appData.schools.forEach(s => {
+                csv += `${s.name},${s.dailyBreads},${s.dailyBreads * 22},${s.pricePerBread},${(s.dailyBreads * 22 * s.pricePerBread).toFixed(2)}\n`;
+            });
+            
+            csv += '\n\nWorkers Report\n';
+            csv += 'Worker Name,Breads Delivered,Price per Bread,Total Salary\n';
+            appData.workers.forEach(w => {
+                csv += `${w.name},${w.breadsDelivered},${w.pricePerBread},${(w.breadsDelivered * w.pricePerBread).toFixed(2)}\n`;
+            });
+            
+            csv += '\n\nSummary\n';
+            const revenue = appData.schools.reduce((sum, s) => sum + (s.dailyBreads * 22 * s.pricePerBread), 0);
+            const salaries = appData.workers.reduce((sum, w) => sum + (w.breadsDelivered * w.pricePerBread), 0);
+            csv += `Total Revenue,${revenue.toFixed(2)}\n`;
+            csv += `Total Salaries,${salaries.toFixed(2)}\n`;
+            csv += `Net Profit,${(revenue - salaries).toFixed(2)}\n`;
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `KhoubzPro_Report_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('Report exported successfully!', 'success');
+        }
+
+        function setupEventListeners() {
+            // Close notification panel when clicking outside
+            document.addEventListener('click', (e) => {
+                const panel = document.getElementById('notificationPanel');
+                const bell = e.target.closest('button');
+                if (!panel.classList.contains('translate-x-full') && !bell) {
+                    panel.classList.add('translate-x-full');
+                }
+            });
+        }
+
+        function loadMonthData() {
+            const selector = document.getElementById('monthSelector');
+            const value = selector.value;
+            
+            if (value === 'current') {
+                updateUI();
+                return;
+            }
+            
+            const record = appData.history[parseInt(value)];
+            if (record) {
+                // Visual feedback that we're viewing historical data
+                document.getElementById('currentMonthDisplay').innerHTML = 
+                    `<span class="text-purple-600 font-bold">📊 Viewing: ${record.month}</span>`;
+                
+                // Temporarily override KPI cards with historical data
+                document.getElementById('kpiMonthlyBreads').textContent = record.totalBreads.toLocaleString();
+                document.getElementById('kpiRevenue').textContent = record.revenue.toFixed(2);
+                document.getElementById('kpiProfit').textContent = record.profit.toFixed(2);
+            }
+        }
+    </script>
+</body>
+</html>
